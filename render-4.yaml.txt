@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: henrytech-v5
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+    autoDeploy: true
