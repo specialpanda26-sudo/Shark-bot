@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Henry Tech Automation V5.0</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #020408;
+      --surface: #080f1a;
+      --border: #112030;
+      --accent: #00e5ff;
+      --accent2: #7c3aed;
+      --green: #00ff88;
+      --text: #e2eaf4;
+      --muted: #4a6070;
+      --card: #060e18;
+      --glow-cyan: rgba(0,229,255,0.15);
+      --glow-purple: rgba(124,58,237,0.15);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Space Grotesk', sans-serif;
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    /* CANVAS PARTICLES */
+    #particles-canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* GRID BG */
+    .grid-bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(0,229,255,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,229,255,0.025) 1px, transparent 1px);
+      background-size: 50px 50px;
+    }
+
+    /* RADIAL GLOW BG */
+    .radial-glow {
+      position: fixed;
+      width: 700px;
+      height: 700px;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 0;
+      filter: blur(120px);
+      opacity: 0.18;
+    }
+    .radial-glow.top { background: var(--accent); top: -200px; left: 50%; transform: translateX(-50%); }
+    .radial-glow.bottom { background: var(--accent2); bottom: -200px; right: -100px; }
+
+    /* NAV */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.1rem 2.5rem;
+      background: rgba(2,4,8,0.7);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(0,229,255,0.08);
+    }
+
+    .nav-logo {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.08em;
+      text-shadow: 0 0 20px rgba(0,229,255,0.5);
+    }
+    .nav-logo span { color: var(--text); }
+    .nav-logo .v { color: var(--muted); }
+
+    .nav-status {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.72rem;
+      color: var(--green);
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.08em;
+      text-shadow: 0 0 10px rgba(0,255,136,0.4);
+    }
+
+    .pulse {
+      width: 8px; height: 8px;
+      background: var(--green);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--green), 0 0 20px rgba(0,255,136,0.4);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 8px var(--green), 0 0 20px rgba(0,255,136,0.4); }
+      50% { opacity: 0.5; transform: scale(0.8); box-shadow: 0 0 4px var(--green); }
+    }
+
+    /* HERO */
+    .hero {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 8rem 1.5rem 5rem;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(0,229,255,0.06);
+      border: 1px solid rgba(0,229,255,0.25);
+      border-radius: 999px;
+      padding: 0.4rem 1.1rem;
+      font-size: 0.72rem;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--accent);
+      margin-bottom: 2.5rem;
+      letter-spacing: 0.1em;
+      animation: fadeSlideDown 0.8s ease both;
+      box-shadow: 0 0 20px rgba(0,229,255,0.1), inset 0 0 20px rgba(0,229,255,0.03);
+    }
+
+    @keyframes fadeSlideDown {
+      from { opacity: 0; transform: translateY(-16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .hero h1 {
+      font-size: clamp(2.5rem, 9vw, 5.5rem);
+      font-weight: 700;
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+      margin-bottom: 1.5rem;
+      animation: fadeSlideUp 0.8s 0.15s ease both;
+    }
+
+    .hero h1 .line1 {
+      display: block;
+      color: var(--text);
+      text-shadow: 0 0 60px rgba(226,234,244,0.08);
+    }
+
+    .hero h1 .line2 {
+      display: block;
+      background: linear-gradient(90deg, var(--accent) 0%, #a855f7 50%, var(--accent) 100%);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: fadeSlideUp 0.8s 0.15s ease both, shimmer 4s linear infinite;
+      filter: drop-shadow(0 0 30px rgba(0,229,255,0.3));
+    }
+
+    @keyframes shimmer {
+      to { background-position: 200% center; }
+    }
+
+    @keyframes fadeSlideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .hero p {
+      max-width: 520px;
+      color: var(--muted);
+      font-size: 1.05rem;
+      margin-bottom: 2.5rem;
+      animation: fadeSlideUp 0.8s 0.3s ease both;
+      line-height: 1.7;
+    }
+
+    .hero-cta {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      animation: fadeSlideUp 0.8s 0.45s ease both;
+    }
+
+    .btn-primary {
+      position: relative;
+      background: var(--accent);
+      color: #000;
+      font-weight: 700;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.9rem;
+      padding: 0.8rem 2.2rem;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 0 20px rgba(0,229,255,0.35), 0 0 60px rgba(0,229,255,0.12);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 30px rgba(0,229,255,0.55), 0 0 80px rgba(0,229,255,0.2);
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--text);
+      font-weight: 600;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.9rem;
+      padding: 0.8rem 2.2rem;
+      border-radius: 8px;
+      border: 1px solid rgba(0,229,255,0.2);
+      cursor: pointer;
+      text-decoration: none;
+      transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+    }
+
+    .btn-outline:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+      box-shadow: 0 0 20px rgba(0,229,255,0.12);
+    }
+
+    /* TERMINAL */
+    .terminal {
+      position: relative;
+      z-index: 1;
+      max-width: 700px;
+      width: 100%;
+      margin: 3.5rem auto 0;
+      background: rgba(6,14,24,0.9);
+      border: 1px solid rgba(0,229,255,0.12);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow:
+        0 0 0 1px rgba(0,229,255,0.05),
+        0 30px 60px rgba(0,0,0,0.6),
+        0 0 80px rgba(0,229,255,0.06);
+      animation: fadeSlideUp 0.8s 0.55s ease both;
+    }
+
+    .terminal::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 14px;
+      background: linear-gradient(135deg, rgba(0,229,255,0.03) 0%, transparent 50%, rgba(124,58,237,0.03) 100%);
+      pointer-events: none;
+    }
+
+    .terminal-bar {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 0.85rem 1.1rem;
+      background: rgba(4,10,18,0.8);
+      border-bottom: 1px solid rgba(0,229,255,0.07);
+    }
+
+    .dot { width: 11px; height: 11px; border-radius: 50%; }
+    .dot.r { background: #ff5f57; box-shadow: 0 0 6px rgba(255,95,87,0.5); }
+    .dot.y { background: #ffbd2e; box-shadow: 0 0 6px rgba(255,189,46,0.5); }
+    .dot.g { background: #28ca41; box-shadow: 0 0 6px rgba(40,202,65,0.5); }
+
+    .terminal-label {
+      margin-left: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.68rem;
+      color: var(--muted);
+    }
+
+    .terminal-body {
+      padding: 1.5rem 1.75rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      line-height: 2;
+    }
+
+    .t-line {
+      opacity: 0;
+      animation: typeLine 0.3s ease forwards;
+    }
+    .t-line:nth-child(1) { animation-delay: 1.2s; }
+    .t-line:nth-child(2) { animation-delay: 1.7s; }
+    .t-line:nth-child(3) { animation-delay: 2.1s; }
+    .t-line:nth-child(4) { animation-delay: 2.5s; }
+    .t-line:nth-child(5) { animation-delay: 2.9s; }
+    .t-line:nth-child(6) { animation-delay: 3.3s; }
+
+    @keyframes typeLine {
+      from { opacity: 0; transform: translateX(-6px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .t-green { color: var(--green); text-shadow: 0 0 8px rgba(0,255,136,0.4); }
+    .t-cyan { color: var(--accent); text-shadow: 0 0 8px rgba(0,229,255,0.4); }
+    .t-muted { color: var(--muted); }
+    .t-purple { color: #a78bfa; text-shadow: 0 0 8px rgba(167,139,250,0.4); }
+
+    /* SECTIONS */
+    section {
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 6rem 1.5rem;
+    }
+
+    .section-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.68rem;
+      color: var(--accent);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 0.75rem;
+      text-shadow: 0 0 10px rgba(0,229,255,0.3);
+    }
+
+    .section-title {
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      margin-bottom: 1rem;
+      line-height: 1.15;
+    }
+
+    .section-sub {
+      color: var(--muted);
+      max-width: 480px;
+      margin-bottom: 3.5rem;
+      font-size: 0.95rem;
+    }
+
+    /* STATS */
+    .stats-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 5rem;
+    }
+
+    .stat-box {
+      position: relative;
+      background: var(--card);
+      border: 1px solid rgba(0,229,255,0.1);
+      border-radius: 12px;
+      padding: 1.75rem 2rem;
+      flex: 1;
+      min-width: 140px;
+      text-align: center;
+      overflow: hidden;
+      transition: border-color 0.3s, transform 0.3s;
+    }
+
+    .stat-box::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(0,229,255,0.04) 0%, transparent 60%);
+    }
+
+    .stat-box:hover {
+      border-color: rgba(0,229,255,0.3);
+      transform: translateY(-3px);
+    }
+
+    .stat-box:hover .stat-num {
+      text-shadow: 0 0 20px rgba(0,229,255,0.7);
+    }
+
+    .stat-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 2.2rem;
+      font-weight: 700;
+      color: var(--accent);
+      text-shadow: 0 0 20px rgba(0,229,255,0.4);
+      transition: text-shadow 0.3s;
+    }
+
+    .stat-label {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 0.3rem;
+      letter-spacing: 0.03em;
+    }
+
+    /* COMMANDS */
+    .commands-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+      gap: 1rem;
+    }
+
+    .cmd-card {
+      position: relative;
+      background: var(--card);
+      border: 1px solid rgba(0,229,255,0.08);
+      border-radius: 12px;
+      padding: 1.5rem 1.75rem;
+      overflow: hidden;
+      transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
+      cursor: default;
+    }
+
+    .cmd-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(0,229,255,0.03) 0%, transparent 70%);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .cmd-card:hover {
+      border-color: rgba(0,229,255,0.3);
+      transform: translateY(-3px);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.4), 0 0 30px rgba(0,229,255,0.06);
+    }
+
+    .cmd-card:hover::before { opacity: 1; }
+
+    .cmd-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--accent);
+      background: rgba(0,229,255,0.07);
+      border: 1px solid rgba(0,229,255,0.15);
+      padding: 0.2rem 0.7rem;
+      border-radius: 5px;
+      display: inline-block;
+      margin-bottom: 0.9rem;
+    }
+
+    .cmd-card h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+    }
+
+    .cmd-card p {
+      font-size: 0.84rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .cmd-icon {
+      font-size: 1.4rem;
+      margin-bottom: 0.5rem;
+    }
+
+    /* AUTO FEATURES */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+      gap: 0.75rem;
+    }
+
+    .feat-item {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      background: var(--card);
+      border: 1px solid rgba(0,229,255,0.07);
+      border-radius: 9px;
+      padding: 0.9rem 1.1rem;
+      font-size: 0.87rem;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+
+    .feat-item:hover {
+      border-color: rgba(0,255,136,0.3);
+      transform: translateX(3px);
+    }
+
+    .feat-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      flex-shrink: 0;
+      box-shadow: 0 0 6px var(--green), 0 0 12px rgba(0,255,136,0.3);
+    }
+
+    /* DEPLOY */
+    .deploy-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+      gap: 1rem;
+    }
+
+    .deploy-card {
+      position: relative;
+      background: var(--card);
+      border: 1px solid rgba(0,229,255,0.08);
+      border-radius: 12px;
+      padding: 1.75rem;
+      overflow: hidden;
+      transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
+    }
+
+    .deploy-card::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.3s ease;
+    }
+
+    .deploy-card:hover {
+      border-color: rgba(0,229,255,0.25);
+      transform: translateY(-3px);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+    }
+
+    .deploy-card:hover::after { transform: scaleX(1); }
+
+    .deploy-icon {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      display: block;
+    }
+
+    .deploy-card h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; }
+    .deploy-card p { font-size: 0.83rem; color: var(--muted); line-height: 1.65; }
+
+    /* DIVIDER */
+    .divider {
+      position: relative;
+      z-index: 1;
+      border: none;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(0,229,255,0.1) 30%, rgba(0,229,255,0.1) 70%, transparent);
+      margin: 0;
+    }
+
+    /* GLOW STRIP */
+    .glow-strip {
+      position: relative;
+      z-index: 1;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent) 50%, transparent);
+      opacity: 0.15;
+      margin: 0;
+    }
+
+    /* FOOTER */
+    footer {
+      position: relative;
+      z-index: 1;
+      border-top: 1px solid rgba(0,229,255,0.06);
+      padding: 2.5rem 1.5rem;
+      text-align: center;
+      font-size: 0.78rem;
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.04em;
+    }
+
+    footer span { color: var(--accent); text-shadow: 0 0 10px rgba(0,229,255,0.3); }
+    footer .version { color: var(--accent); }
+
+    /* SCROLL REVEAL */
+    .reveal {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.65s ease, transform 0.65s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: none;
+    }
+
+    @media (max-width: 600px) {
+      nav { padding: 0.9rem 1.1rem; }
+      .hero { padding: 6.5rem 1rem 3.5rem; }
+      section { padding: 4rem 1rem; }
+      .terminal-body { padding: 1.1rem 1.1rem; font-size: 0.73rem; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="particles-canvas"></canvas>
+<div class="grid-bg"></div>
+<div class="radial-glow top"></div>
+<div class="radial-glow bottom"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">HENRY<span>TECH</span> <span class="v">V5.0</span></div>
+  <div class="nav-status">
+    <div class="pulse"></div>
+    ALL SYSTEMS ONLINE
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">⚡ 19 AUTOMATION MODULES ACTIVE</div>
+  <h1>
+    <span class="line1">WhatsApp Automation</span>
+    <span class="line2">Redefined.</span>
+  </h1>
+  <p>Henry Tech Automation V5.0 — AI-powered WhatsApp bot with media downloads, smart replies, auto features, and full self-healing deployment.</p>
+  <div class="hero-cta">
+    <a href="#commands" class="btn-primary">Explore Commands</a>
+    <a href="#deploy" class="btn-outline">Deploy Now</a>
+  </div>
+
+  <!-- TERMINAL -->
+  <div class="terminal">
+    <div class="terminal-bar">
+      <div class="dot r"></div>
+      <div class="dot y"></div>
+      <div class="dot g"></div>
+      <div class="terminal-label">henry-tech-v5 — bash</div>
+    </div>
+    <div class="terminal-body">
+      <div class="t-line"><span class="t-muted">$</span> <span class="t-cyan">node</span> main.js</div>
+      <div class="t-line"><span class="t-green">✔</span> Session authenticated via pairing code</div>
+      <div class="t-line"><span class="t-green">✔</span> Python bridge connected on port 5000</div>
+      <div class="t-line"><span class="t-green">✔</span> Groq LLaMA-3 AI engine loaded</div>
+      <div class="t-line"><span class="t-green">✔</span> SQLite database synchronized</div>
+      <div class="t-line"><span class="t-purple">⚡</span> 19 modules online — Henry Tech V5.0 ready</div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- STATS + COMMANDS -->
+<section>
+  <div class="stats-row reveal">
+    <div class="stat-box">
+      <div class="stat-num">19</div>
+      <div class="stat-label">Automation Modules</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-num">1000+</div>
+      <div class="stat-label">Supported Sites</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-num">24/7</div>
+      <div class="stat-label">Always Online</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-num">V5.0</div>
+      <div class="stat-label">Latest Version</div>
+    </div>
+  </div>
+
+  <div id="commands" class="reveal">
+    <div class="section-label">// commands</div>
+    <div class="section-title">What the bot can do</div>
+    <p class="section-sub">Send any command directly on WhatsApp. No apps, no setup on your end.</p>
+  </div>
+
+  <div class="commands-grid reveal">
+    <div class="cmd-card">
+      <div class="cmd-icon">🧠</div>
+      <div class="cmd-tag">/ask [query]</div>
+      <h3>AI Chat</h3>
+      <p>Powered by Groq LLaMA-3. Ask anything and get instant intelligent replies.</p>
+    </div>
+    <div class="cmd-card">
+      <div class="cmd-icon">🎨</div>
+      <div class="cmd-tag">/paint [text]</div>
+      <h3>Text Image</h3>
+      <p>Generate a styled image from any text — great for quotes, announcements, and more.</p>
+    </div>
+    <div class="cmd-card">
+      <div class="cmd-icon">📥</div>
+      <div class="cmd-tag">/download_video [URL]</div>
+      <h3>Video Download</h3>
+      <p>Download videos from YouTube, Instagram, Facebook, TikTok and 1000+ sites.</p>
+    </div>
+    <div class="cmd-card">
+      <div class="cmd-icon">🎧</div>
+      <div class="cmd-tag">/download_song [URL]</div>
+      <h3>MP3 Extract</h3>
+      <p>Pull audio from any video link and get a direct MP3 download.</p>
+    </div>
+    <div class="cmd-card">
+      <div class="cmd-icon">🗑️</div>
+      <div class="cmd-tag">/recover [number]</div>
+      <h3>Message Recovery</h3>
+      <p>Retrieve cached messages from any contact stored in the bot's database.</p>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- AUTO FEATURES -->
+<section>
+  <div class="reveal">
+    <div class="section-label">// auto features</div>
+    <div class="section-title">Always running in the background</div>
+    <p class="section-sub">No triggers needed. These modules activate the moment the bot goes online.</p>
+  </div>
+
+  <div class="features-grid reveal">
+    <div class="feat-item"><div class="feat-dot"></div>Auto save contacts</div>
+    <div class="feat-item"><div class="feat-dot"></div>Auto welcome message</div>
+    <div class="feat-item"><div class="feat-dot"></div>Auto read messages</div>
+    <div class="feat-item"><div class="feat-dot"></div>Auto react to messages</div>
+    <div class="feat-item"><div class="feat-dot"></div>Auto view status</div>
+    <div class="feat-item"><div class="feat-dot"></div>Anti-call protection</div>
+    <div class="feat-item"><div class="feat-dot"></div>Always online presence</div>
+    <div class="feat-item"><div class="feat-dot"></div>Auto bio updater</div>
+    <div class="feat-item"><div class="feat-dot"></div>Save view-once media</div>
+    <div class="feat-item"><div class="feat-dot"></div>Anti-ban mode</div>
+    <div class="feat-item"><div class="feat-dot"></div>Fake typing indicator</div>
+    <div class="feat-item"><div class="feat-dot"></div>Auto reconnect</div>
+    <div class="feat-item"><div class="feat-dot"></div>Multi-session support</div>
+    <div class="feat-item"><div class="feat-dot"></div>QR + Pairing code login</div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- DEPLOY -->
+<section id="deploy">
+  <div class="reveal">
+    <div class="section-label">// deployment</div>
+    <div class="section-title">Deploy anywhere in minutes</div>
+    <p class="section-sub">Built with Docker — runs on Railway, Render, or any VPS with zero config changes.</p>
+  </div>
+
+  <div class="deploy-grid reveal">
+    <div class="deploy-card">
+      <span class="deploy-icon">🚂</span>
+      <h3>Railway</h3>
+      <p>One-click deploy via <code style="color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:0.8em">railway.json</code>. Auto-builds from GitHub with environment variable support.</p>
+    </div>
+    <div class="deploy-card">
+      <span class="deploy-icon">🌐</span>
+      <h3>Render</h3>
+      <p>Uses <code style="color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:0.8em">render.yaml</code> for automatic setup. Free tier compatible for testing.</p>
+    </div>
+    <div class="deploy-card">
+      <span class="deploy-icon">🐳</span>
+      <h3>Any VPS (Docker)</h3>
+      <p>Dockerfile included. Works on Vultr, DigitalOcean, fly.io — just set your env vars and run.</p>
+    </div>
+  </div>
+</section>
+
+<div class="glow-strip"></div>
+
+<footer>
+  Built by <span>@henrytech254</span> · Henry Tech Automation <span class="version">V5.0</span> · All modules online&nbsp;🟢
+</footer>
+
+<script>
+  // PARTICLES
+  (function() {
+    const canvas = document.getElementById('particles-canvas');
+    const ctx = canvas.getContext('2d');
+    let W, H, particles = [];
+
+    function resize() {
+      W = canvas.width = window.innerWidth;
+      H = canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    const COLORS = ['rgba(0,229,255,', 'rgba(124,58,237,', 'rgba(0,255,136,'];
+
+    function rand(a, b) { return Math.random() * (b - a) + a; }
+
+    function createParticle() {
+      return {
+        x: rand(0, W),
+        y: rand(0, H),
+        vx: rand(-0.15, 0.15),
+        vy: rand(-0.25, -0.05),
+        size: rand(1, 2.5),
+        alpha: rand(0.1, 0.5),
+        color: COLORS[Math.floor(rand(0, COLORS.length))],
+        life: rand(0.5, 1),
+        decay: rand(0.001, 0.003)
+      };
+    }
+
+    for (let i = 0; i < 80; i++) particles.push(createParticle());
+
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+
+      // Draw connections
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x;
+          const dy = particles[i].y - particles[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 120) {
+            const alpha = (1 - dist / 120) * 0.06;
+            ctx.beginPath();
+            ctx.strokeStyle = `rgba(0,229,255,${alpha})`;
+            ctx.lineWidth = 0.5;
+            ctx.moveTo(particles[i].x, particles[i].y);
+            ctx.lineTo(particles[j].x, particles[j].y);
+            ctx.stroke();
+          }
+        }
+      }
+
+      particles.forEach((p, i) => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= p.decay;
+
+        if (p.life <= 0 || p.y < -10) {
+          particles[i] = createParticle();
+          particles[i].y = H + 5;
+          return;
+        }
+
+        const a = p.alpha * p.life;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = p.color + a + ')';
+        ctx.fill();
+
+        // Glow
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = p.color + (a * 0.2) + ')';
+        ctx.fill();
+      });
+
+      requestAnimationFrame(draw);
+    }
+    draw();
+  })();
+
+  // SCROLL REVEAL
+  const reveals = document.querySelectorAll('.reveal');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.12 });
+  reveals.forEach(r => observer.observe(r));
+</script>
+</body>
+</html>
