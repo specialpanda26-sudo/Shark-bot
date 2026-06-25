@@ -2,3 +2,4 @@ quart
 groq
 aiosqlite
 httpx
+yt-dlp
