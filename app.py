@@ -3,6 +3,8 @@ import time
 import asyncio
 import httpx
 import logging
+import subprocess
+import json
 from quart import Quart, request, jsonify
 from groq import AsyncGroq
 import aiosqlite
@@ -49,8 +51,8 @@ WELCOME_TEXT = (
     "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
     "🧠 /ask [query] ➔ Chat with Llama-3 AI\n"
     "🎨 /paint [text] ➔ Generate text image\n"
-    "📥 /download_video [URL] ➔ Download Videos\n"
-    "🎧 /download_song [URL] ➔ Extract MP3\n"
+    "📥 /download_video [URL] ➔ Download Videos (YT, IG, FB, TikTok)\n"
+    "🎧 /download_song [URL] ➔ Extract MP3 audio\n"
     "🗑️ /recover [number] ➔ Recover deleted messages\n"
     "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
     "🛡️ Anti-Ban, Fake Typing, Auto Status & Auto React running in background."
@@ -61,6 +63,61 @@ async def check_db_blacklist(sender: str) -> bool:
     async with aiosqlite.connect(DB_FILE) as db:
         async with db.execute("SELECT 1 FROM blacklist WHERE sender = ?", (sender,)) as c:
             return (await c.fetchone()) is not None
+
+async def get_video_url(url: str) -> dict:
+    """Use yt-dlp to get direct video download link"""
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "yt-dlp",
+            "--dump-json",
+            "--no-playlist",
+            "-f", "best[ext=mp4]/best",
+            url,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=30)
+        if proc.returncode == 0:
+            data = json.loads(stdout.decode())
+            return {
+                "success": True,
+                "url": data.get("url", ""),
+                "title": data.get("title", "Video"),
+                "duration": data.get("duration_string", "")
+            }
+        return {"success": False, "error": stderr.decode()[:200]}
+    except asyncio.TimeoutError:
+        return {"success": False, "error": "Download timed out"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+async def get_audio_url(url: str) -> dict:
+    """Use yt-dlp to get direct audio download link"""
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "yt-dlp",
+            "--dump-json",
+            "--no-playlist",
+            "-f", "bestaudio",
+            "--extract-audio",
+            "--audio-format", "mp3",
+            url,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=30)
+        if proc.returncode == 0:
+            data = json.loads(stdout.decode())
+            return {
+                "success": True,
+                "url": data.get("url", ""),
+                "title": data.get("title", "Audio")
+            }
+        return {"success": False, "error": stderr.decode()[:200]}
+    except asyncio.TimeoutError:
+        return {"success": False, "error": "Download timed out"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
 
 @app.route("/auto-save", methods=["POST"])
 async def register_profile():
@@ -102,6 +159,7 @@ async def process_sentiment():
     if any(w in p for w in ["lol", "haha", "lmao", "funny", "😂"]): return jsonify({"emoji": "😂"})
     if any(w in p for w in ["sad", "cry", "miss", "sorry"]): return jsonify({"emoji": "🥺"})
     if any(w in p for w in ["fire", "lit", "banger", "🔥"]): return jsonify({"emoji": "🔥"})
+    if any(w in p for w in ["wow", "omg", "seriously", "really"]): return jsonify({"emoji": "😮"})
     return jsonify({"emoji": "👍"})
 
 @app.route("/get-bio", methods=["GET"])
@@ -132,7 +190,7 @@ async def process_command_pipeline():
         except Exception as e:
             return jsonify({"reply": f"❌ AI Error: {str(e)}"})
 
-    # 2. Paint / Text Image Command
+    # 2. Paint Command
     elif incoming_text.startswith("/paint "):
         prompt = incoming_text[7:].strip()
         if not prompt:
@@ -146,50 +204,25 @@ async def process_command_pipeline():
         url = incoming_text[16:].strip()
         if not url:
             return jsonify({"reply": "⚠️ Please provide a URL after /download_video"})
-        try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                res = await client.post(
-                    "https://co.wuk.sh/api/json",
-                    headers={
-                        "Accept": "application/json",
-                        "Content-Type": "application/json"
-                    },
-                    json={"url": url, "vCodec": "h264", "vQuality": "720"}
-                )
-                res_data = res.json()
-                if "url" in res_data:
-                    return jsonify({"reply": f"⬇️ *Video Ready*\n\n📦 Download Link:\n{res_data['url']}"})
-                elif "text" in res_data:
-                    return jsonify({"reply": f"❌ {res_data['text']}"})
-                return jsonify({"reply": "❌ Could not extract video. Check the URL."})
-        except Exception as e:
-            return jsonify({"reply": f"❌ Video Error: {str(e)}"})
+        result = await get_video_url(url)
+        if result["success"] and result["url"]:
+            title = result.get("title", "Video")
+            duration = result.get("duration", "")
+            return jsonify({"reply": f"⬇️ *Video Ready*\n\n🎬 {title}\n⏱️ {duration}\n\n📦 Download Link:\n{result['url']}"})
+        return jsonify({"reply": f"❌ Could not download video.\n{result.get('error', 'Unknown error')}"})
 
     # 4. Song/MP3 Download Command
     elif incoming_text.startswith("/download_song "):
         url = incoming_text[15:].strip()
         if not url:
             return jsonify({"reply": "⚠️ Please provide a URL after /download_song"})
-        try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                res = await client.post(
-                    "https://co.wuk.sh/api/json",
-                    headers={
-                        "Accept": "application/json",
-                        "Content-Type": "application/json"
-                    },
-                    json={"url": url, "isAudioOnly": True, "audioFormat": "mp3"}
-                )
-                res_data = res.json()
-                if "url" in res_data:
-                    return jsonify({"reply": f"🎧 *MP3 Ready*\n\n🎵 Download Link:\n{res_data['url']}"})
-                elif "text" in res_data:
-                    return jsonify({"reply": f"❌ {res_data['text']}"})
-                return jsonify({"reply": "❌ Could not extract audio. Check the URL."})
-        except Exception as e:
-            return jsonify({"reply": f"❌ Audio Error: {str(e)}"})
+        result = await get_audio_url(url)
+        if result["success"] and result["url"]:
+            title = result.get("title", "Audio")
+            return jsonify({"reply": f"🎧 *MP3 Ready*\n\n🎵 {title}\n\n📦 Download Link:\n{result['url']}"})
+        return jsonify({"reply": f"❌ Could not extract audio.\n{result.get('error', 'Unknown error')}"})
 
-    # 5. Recover Deleted Messages Command
+    # 5. Recover Command
     elif incoming_text.startswith("/recover "):
         target_jid = incoming_text[9:].strip()
         if not target_jid:
@@ -206,7 +239,8 @@ async def process_command_pipeline():
                              "\n".join([f"👤 *{row[0]}*: {row[1]}" for row in rows])
                 return jsonify({"reply": reply_text})
 
-    return jsonify({"reply": "ℹ️ Unknown command. Type /ask, /paint, /download_video, /download_song or /recover"})
+    return jsonify({"reply": "ℹ️ Unknown command. Use /ask, /paint, /download_video, /download_song or /recover"})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=False)
+    
